@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { ComponentTreeBuilderI, node } from './interface';
 
 
 /*
@@ -10,10 +11,11 @@ import * as vscode from 'vscode';
 
 
 export class NodeDependenciesProvider implements vscode.TreeDataProvider<Dependency> {
-    constructor(private workspaceRoot: string, private componentFinder:any) {
+    constructor(private workspaceRoot: string, private componentFinder:ComponentTreeBuilderI) {
         /*
             - call createTreeDataStructures from componentTreeBuilder with workspaceRoot
         */
+        this.componentFinder.createTreeDataStructures(this.workspaceRoot);
     }
 
     getTreeItem(element: Dependency): vscode.TreeItem {
@@ -22,8 +24,7 @@ export class NodeDependenciesProvider implements vscode.TreeDataProvider<Depende
 
     getChildren(element?: Dependency): Thenable<Dependency[]> {
 
-        /*
-            - check if ext is used in a work space
+        /*            - check if ext is used in a work space
             - check if ext is used in a react installed workspace
             - get tree for fpath to display for path given
             - display given tree
@@ -41,12 +42,12 @@ export class NodeDependenciesProvider implements vscode.TreeDataProvider<Depende
             return Promise.resolve([]);
         }
 
-        if (!this.componentFinder.isReactProject){
+        if (!this.componentFinder.isReactWorkspace){
             vscode.window.showInformationMessage('Can only work in a react project');
             return Promise.resolve([]);
         }
 
-        const tree =  this.componentFinder.getTree();
+        const tree =  this.componentFinder.getSubNodes(element?.node);
         
 
         if (element) {
@@ -69,37 +70,37 @@ export class NodeDependenciesProvider implements vscode.TreeDataProvider<Depende
     /**
      * Given the path to package.json, read all its dependencies and devDependencies.
      */
-    private getDepsInPackageJson(packageJsonPath: string): Dependency[] {
-        if (this.pathExists(packageJsonPath)) {
-        const toDep = (moduleName: string, version: string): Dependency => {
-            if (this.pathExists(path.join(this.workspaceRoot, 'node_modules', moduleName))) {
-            return new Dependency(
-                moduleName,
-                version,
-                vscode.TreeItemCollapsibleState.Collapsed
-            );
-            } else {
-            return new Dependency(moduleName, version, vscode.TreeItemCollapsibleState.None);
-            }
-        };
+    // private getDepsInPackageJson(packageJsonPath: string): Dependency[] {
+    //     if (this.pathExists(packageJsonPath)) {
+    //     const toDep = (moduleName: string, version: string): Dependency => {
+    //         if (this.pathExists(path.join(this.workspaceRoot, 'node_modules', moduleName))) {
+    //         return new Dependency(
+    //             moduleName,
+    //             version,
+    //             vscode.TreeItemCollapsibleState.Collapsed
+    //         );
+    //         } else {
+    //         return new Dependency(moduleName, version, vscode.TreeItemCollapsibleState.None);
+    //         }
+    //     };
 
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+    //     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
 
-        const deps = packageJson.dependencies
-            ? Object.keys(packageJson.dependencies).map(dep =>
-                toDep(dep, packageJson.dependencies[dep])
-            )
-            : [];
-        const devDeps = packageJson.devDependencies
-            ? Object.keys(packageJson.devDependencies).map(dep =>
-                toDep(dep, packageJson.devDependencies[dep])
-            )
-            : [];
-        return deps.concat(devDeps);
-        } else {
-        return [];
-        }
-    }
+    //     const deps = packageJson.dependencies
+    //         ? Object.keys(packageJson.dependencies).map(dep =>
+    //             toDep(dep, packageJson.dependencies[dep])
+    //         )
+    //         : [];
+    //     const devDeps = packageJson.devDependencies
+    //         ? Object.keys(packageJson.devDependencies).map(dep =>
+    //             toDep(dep, packageJson.devDependencies[dep])
+    //         )
+    //         : [];
+    //     return deps.concat(devDeps);
+    //     } else {
+    //     return [];
+    //     }
+    // }
 
     private pathExists(p: string): boolean {
         try {
@@ -113,6 +114,7 @@ export class NodeDependenciesProvider implements vscode.TreeDataProvider<Depende
 
     class Dependency extends vscode.TreeItem {
     constructor(
+        public readonly node:  node,
         public readonly label: string,
         private version: string,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState
