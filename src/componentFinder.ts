@@ -1,4 +1,5 @@
-
+import * as fs from "fs";
+import * as path from 'path';
 
 let TREE_DS;
 let COMPONENT_MAP =  new Map();
@@ -8,11 +9,17 @@ let COMPONENT_MAP =  new Map();
 
 
 class ComponentTreeBuilder{
+    public isReactWorkspace: boolean;
+
+
     constructor (){
-        
+        this.isReactWorkspace =  false;
     }
 
     public createTreeDataStructures(workspacePath: string){
+        if(!(workspacePath && this.isReactProject(workspacePath))){ return;}
+
+
         /*
             - call  isReactProject
             - if true:
@@ -50,6 +57,30 @@ class ComponentTreeBuilder{
             -  if desired file exits return Node
             -  else return undefined
         */
+    }
+
+
+
+    private pathExists(p: string): boolean {
+        try {
+            fs.accessSync(p);
+        } catch (err) {
+            return false;
+        }
+        return true;
+    }
+
+
+    public isReactProject(projectRootPath:  string): boolean{
+        const srcPath:string =  path.join(projectRootPath,  "src");
+        const packageDotJsonPath:string =  path.join(projectRootPath,  "package.json");
+        if(!(this.pathExists(srcPath) && this.pathExists(packageDotJsonPath))) { return false; }
+        
+        // open = package.json read the content make it json=  go to the depenecies and check if react.js is present
+
+        const config =  JSON.parse(fs.readFileSync(packageDotJsonPath,  "utf-8"));
+
+        return !!(config?.dependencies?.react??null);
     }
 
 
