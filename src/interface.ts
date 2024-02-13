@@ -3,12 +3,13 @@
 export type node = {
     componentsCount:  number ,
     type: "folder" | "componentFile",
-    children:  node[]
+    children:  node[],
+    path: string
 };
 
 
 export type tree = {
-    root: node
+    root: node |  undefined
     insert: ()=>void,
     remove:  ()=>void,
 };
