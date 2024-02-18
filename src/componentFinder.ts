@@ -1,3 +1,6 @@
+import parser from "@babel/parser";
+import traverse from "@babel/traverse";
+import t, { Identifier, VariableDeclarator } from "@babel/types";
 import * as fs from "fs";
 import * as path from 'path';
 import { Node, Tree } from "./trees";
@@ -97,7 +100,10 @@ class ComponentTreeBuilder{
     */
 
 
-    private findAllComponents(file:string){
+    private extraAllInformation(file:string):  number{
+        let foundComponents =  0;
+        const blockScopeReturnsJSX =  this.findIfScopeReturnsJSX;
+        const storeComponent =  this.addComponentToHashMap;
         /*
                 count how many components are in the file;
                 create an array of objects with hook-name:path
@@ -115,31 +121,137 @@ class ComponentTreeBuilder{
                 add if not exists and increment the usageCount to + 1 then add path to foundIn array
                 return component count
             */
-        const fileContent = fs.readFileSync(file, "utf8");
-        const componentNames =  this.getAllDefinedComponents(fileContent);
-        const hooksObjectsRep =  this.getAllHooksUsed(fileContent);
-        const componentDepenencies =  this.getAllImportedComponents(fileContent);
+        const fileContent = fs.readFileSync(file, "utf-8");
+        const ast = parser.parse(fileContent, {
+            sourceType: 'module',
+            plugins: ['jsx'],
+        });
 
-        this.appendComponentsToHashMap(componentNames, file);
-        this.updateUsageRecord(componentDepenencies,  file);
-        this.updateHooksRecord(hooksObjectsRep);
 
-        return componentNames.length;
+        traverse(
+            ast, {
+                ArrowFunctionExpression(path){
+                    if(t.isJSXElement(path.node.body) ||  t.isJSXFragment(path.node.body)){
+                            foundComponents +=  1;
+                            const parent  =  path.parent as VariableDeclarator;
+                            storeComponent(file,  (parent.id as Identifier).name);
+                            return;
+                    }
+                    
+                    if (blockScopeReturnsJSX(path.node.body)){
+                        foundComponents +=  1;
+                        const parent  =  path.parent as VariableDeclarator;
+                        storeComponent(file,  (parent.id as Identifier).name);
+                    }
+                },
+                    FunctionDeclaration(path){
+                        if (blockScopeReturnsJSX(path.node.body)){
+                            foundComponents +=  1;
+                        }
+                },
+                ImportDeclaration(path){
+                  //findAllHooks
+                    path.node.specifiers.forEach((specifier)=>{
+                        if(t.isImportSpecifier(specifier)
+                            && t.isIdentifier(specifier.imported)
+                            && specifier.imported.name.startsWith("use")
+                        ){
+                        console.log("named hook import");
+
+                    }else if(
+                        t.isImportDefaultSpecifier(specifier)
+                        && t.isIdentifier(specifier.local)
+                        && specifier.local.name.startsWith("use")){
+                        console.log("default hook import");
+                    }
+                });
+
+                  // Find all components
+                path.node.specifiers.forEach((specifier)=>{
+                    if(t.isImportSpecifier(specifier)
+                        && t.isIdentifier(specifier.imported)
+                        &&specifier.imported.name.match(/^[A-Z][a-zA-Z0-9]*$/)
+                    ){
+                        console.log("named component import");
+                    }else if(t.isImportDefaultSpecifier(specifier) && specifier.local.name.match(/^[A-Z][a-zA-Z0-9]*$/)){
+                        console.log("default component import");
+                    }
+                });
+
+                console.log(path.node.source.value);
+                 //parse and evaluate path if its a library or local
+                }
+            }
+        );
+
+
+        
+        
+
+
+        // const componentNames =  this.getAllDefinedComponents(fileContent);
+        // const hooksObjectsRep =  this.getAllHooksUsed(fileContent);
+        // const componentDepenencies =  this.getAllImportedComponents(fileContent);
+
+        // this.appendComponentsToHashMap(componentNames, file);
+        // this.updateUsageRecord(componentDepenencies,  file);
+        // this.updateHooksRecord(hooksObjectsRep);
+
+        // return componentNames.length;
+        return foundComponents;
+    }
+
+
+
+    private findIfScopeReturnsJSX(inputBody: t.BlockStatement | t.Expression) :  boolean{
+        if(!t.isBlockStatement(inputBody)){ return false;}
+            
+        let returnVal = false;
+        inputBody.body.forEach((element)=>{
+            if(!t.isReturnStatement(element)) {return 0;}
+
+            if(t.isJSXElement(element.argument) ||  t.isJSXFragment(element.argument)){
+                returnVal =  true;
+            }
+        });
+
+        return returnVal;
+    }
+
+
+    private findAllImportedHooks(filename:string){
+        //if path is relative resolve from filename /home/www/src/comp/A.tsx : ../pages/X.py -> /home/ww/src/pages/X.py
+        //if path starts with @ check if it is a component defined in package.json else find definition of alias in webpack.config.js or .babelrc or vite.config.js
+        //if no @ and . at the beginning of file then look for baseUrl in tsconfig.json or jsconfig.json in compilerOptions
+    }
+
+    private findAllImportedComponents(){
+
+    }
+
+
+    private addComponentToHashMap(file:string,  componentName:string){
+        if(_COMPONENT_MAP.has(componentName)){ return; }
+        _COMPONENT_MAP.set(
+            file, {
+                components: [
+                    {
+                        name:  componentName,
+                        usageCount: 0,
+                        pathFound: [],
+                        exported: false, //TODO: future implementation
+                    }
+                ],
+                hooks: [],
+            }
+        );
+        
     }
 
 
     private getAllDefinedComponents(fileContent:Buffer){
 
         return [];
-    }
-
-
-    private pickOne (){
-        /*
-            - pick one item direct child items of folder if it is a folder, .js file,.tsx file or .jsx file
-            -  if desired file exits return Node
-            -  else return undefined
-        */
     }
 
 

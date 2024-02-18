@@ -50,21 +50,21 @@ export class NodeDependenciesProvider implements vscode.TreeDataProvider<Depende
         const tree =  this.componentFinder.getSubNodes(element?.node);
         
 
-        if (element) {
-        return Promise.resolve(
-            this.getDepsInPackageJson(
-            path.join(this.workspaceRoot, 'node_modules', element.label, 'package.json')
-            )
-        );
-        } else {
-        const packageJsonPath = path.join(this.workspaceRoot, 'package.json');
-        if (this.pathExists(packageJsonPath)) {
-            return Promise.resolve(this.getDepsInPackageJson(packageJsonPath));
-        } else {
-            vscode.window.showInformationMessage('Workspace has no package.json');
-            return Promise.resolve([]);
-        }
-        }
+        // if (element) {
+        // return Promise.resolve(
+        //     this.getDepsInPackageJson(
+        //     path.join(this.workspaceRoot, 'node_modules', element.label, 'package.json')
+        //     )
+        // );
+        // } else {
+        // const packageJsonPath = path.join(this.workspaceRoot, 'package.json');
+        // if (this.pathExists(packageJsonPath)) {
+        //     return Promise.resolve(this.getDepsInPackageJson(packageJsonPath));
+        // } else {
+        //     vscode.window.showInformationMessage('Workspace has no package.json');
+        //     return Promise.resolve([]);
+        // }
+        // }
 }
 
     /**
