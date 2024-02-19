@@ -1,6 +1,6 @@
 import parser from "@babel/parser";
 import traverse from "@babel/traverse";
-import t, { Identifier, VariableDeclarator } from "@babel/types";
+import t, { Identifier, isVariableDeclarator } from "@babel/types";
 import * as fs from "fs";
 import * as path from 'path';
 import { Node, Tree } from "./trees";
@@ -131,22 +131,27 @@ class ComponentTreeBuilder{
         traverse(
             ast, {
                 ArrowFunctionExpression(path){
+                    const storeComponentAndIncrementCount =  ()=>{
+                        if(!isVariableDeclarator(path.parent)) {return;}
+                        foundComponents +=  1;
+                        storeComponent(file,  (path.parent.id as Identifier).name);
+                    };
+
                     if(t.isJSXElement(path.node.body) ||  t.isJSXFragment(path.node.body)){
-                            foundComponents +=  1;
-                            const parent  =  path.parent as VariableDeclarator;
-                            storeComponent(file,  (parent.id as Identifier).name);
-                            return;
+                            
+                        storeComponentAndIncrementCount();
+                        return;
                     }
                     
                     if (blockScopeReturnsJSX(path.node.body)){
-                        foundComponents +=  1;
-                        const parent  =  path.parent as VariableDeclarator;
-                        storeComponent(file,  (parent.id as Identifier).name);
+                        storeComponentAndIncrementCount();
                     }
                 },
                     FunctionDeclaration(path){
                         if (blockScopeReturnsJSX(path.node.body)){
+                            if(!path.node.id){ return;}
                             foundComponents +=  1;
+                            storeComponent(file,  path.node.id.name);
                         }
                 },
                 ImportDeclaration(path){
