@@ -84,7 +84,8 @@ class ComponentTreeBuilder{
             return true;
         }else if (stat.isFile() ){
             const pathSplit =  file.split(".");
-            if (pathSplit.length > 1 && ["js","tsx","jsx"].indexOf(pathSplit[1]) !== -1 ){
+            const len =  pathSplit.length;
+            if (len > 1  && ["js","tsx","jsx"].indexOf(pathSplit[len - 1]) !== -1 ){
                 return true;
             }
         }
