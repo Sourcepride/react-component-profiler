@@ -15,10 +15,12 @@ let _HOOKS_MAP =  new Map(); // incase of another tree for all hooks and compone
 
 class ComponentTreeBuilder{
     public isReactWorkspace: boolean;
+    public workspacePath:  string;
 
 
     constructor (){
         this.isReactWorkspace =  false;
+        this.workspacePath = "";
     }
 
     public createTreeDataStructures(workspacePath: string){
@@ -32,6 +34,7 @@ class ComponentTreeBuilder{
         */
         const rootNode =  Node.createNewNode(path.join(workspacePath,  "src"));
         _TREE_DS.root = rootNode;
+        this.workspacePath =  workspacePath;
 
         this.depthFirstFolderTreeTraversal(rootNode);
 
@@ -235,11 +238,17 @@ class ComponentTreeBuilder{
 
     }
 
+    private resolveImportPath(filePath: string,  importPath:string){
+        
+    }
+
 
     private addComponentToHashMap(file:string,  componentName:string){
+        const identifier =  file.split(".")[0];
         if(_COMPONENT_MAP.has(componentName)){ return; }
+
         _COMPONENT_MAP.set(
-            file, {
+            identifier, {
                 components: [
                     {
                         name:  componentName,
@@ -283,9 +292,4 @@ class ComponentTreeBuilder{
 
         return !!(config?.dependencies?.react??null);
     }
-
-
-
-
-
 }
