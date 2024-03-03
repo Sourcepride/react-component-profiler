@@ -10,32 +10,16 @@ import { ComponentTreeBuilderI, node } from './types';
 */
 
 
-export class NodeDependenciesProvider implements vscode.TreeDataProvider<Dependency> {
+export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo> {
     constructor(private workspaceRoot: string, private componentFinder:ComponentTreeBuilderI) {
-        /*
-            - call createTreeDataStructures from componentTreeBuilder with workspaceRoot
-        */
         this.componentFinder.createTreeDataStructures(this.workspaceRoot);
     }
 
-    getTreeItem(element: Dependency): vscode.TreeItem {
+    getTreeItem(element: NodeInfo): vscode.TreeItem {
         return element;
     }
 
-    getChildren(element?: Dependency): Thenable<Dependency[]> {
-
-        /*            - check if ext is used in a work space
-            - check if ext is used in a react installed workspace
-            - get tree for fpath to display for path given
-            - display given tree
-                - for loop through tree array
-                - check if node is a folder
-                    - yes:  create dependency of type folder with node component count [expanded false but expandable yes]
-                    - no:  create dependency of type component [expanded false but expandable yes]
-                
-
-        */
-
+    getChildren(element?: NodeInfo): Thenable<NodeInfo[]> {
 
         if (!this.workspaceRoot) {
             vscode.window.showInformationMessage('No component in empty workspace');
@@ -47,60 +31,156 @@ export class NodeDependenciesProvider implements vscode.TreeDataProvider<Depende
             return Promise.resolve([]);
         }
 
-        const tree =  this.componentFinder.getSubNodes(element?.node);
-        
 
-        // if (element) {
-        // return Promise.resolve(
-        //     this.getDepsInPackageJson(
-        //     path.join(this.workspaceRoot, 'node_modules', element.label, 'package.json')
-        //     )
-        // );
-        // } else {
-        // const packageJsonPath = path.join(this.workspaceRoot, 'package.json');
-        // if (this.pathExists(packageJsonPath)) {
-        //     return Promise.resolve(this.getDepsInPackageJson(packageJsonPath));
-        // } else {
-        //     vscode.window.showInformationMessage('Workspace has no package.json');
-        //     return Promise.resolve([]);
-        // }
-        // }
+
+        if (element){
+            let response: NodeInfo[];
+            switch (element.type){
+                case 'folder': response =  this.getFolderNodes(element.node as node, this.componentFinder);
+                case 'file': response =  this.getFileNodes(element.node as node, this.componentFinder );
+                case 'component': response =  this.getComponentNodes(element.path, element.label, this.componentFinder);
+                case 'placeholder': response = element.label === "hooks"? this.getHooksNodes(element.path,  this.componentFinder) : [];
+                default: response =  [];
+            }
+
+            return Promise.resolve(response);
+        }else{
+            return Promise.resolve(this.getFolderNodes(this.componentFinder.getRootNode(), this.componentFinder));
+        }
+
 }
 
-    /**
-     * Given the path to package.json, read all its dependencies and devDependencies.
-     */
-    // private getDepsInPackageJson(packageJsonPath: string): Dependency[] {
-    //     if (this.pathExists(packageJsonPath)) {
-    //     const toDep = (moduleName: string, version: string): Dependency => {
-    //         if (this.pathExists(path.join(this.workspaceRoot, 'node_modules', moduleName))) {
-    //         return new Dependency(
-    //             moduleName,
-    //             version,
-    //             vscode.TreeItemCollapsibleState.Collapsed
-    //         );
-    //         } else {
-    //         return new Dependency(moduleName, version, vscode.TreeItemCollapsibleState.None);
-    //         }
-    //     };
 
-    //     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+    private getFolderNodes(node: node| undefined,componentFinder:ComponentTreeBuilderI ){
 
-    //     const deps = packageJson.dependencies
-    //         ? Object.keys(packageJson.dependencies).map(dep =>
-    //             toDep(dep, packageJson.dependencies[dep])
-    //         )
-    //         : [];
-    //     const devDeps = packageJson.devDependencies
-    //         ? Object.keys(packageJson.devDependencies).map(dep =>
-    //             toDep(dep, packageJson.devDependencies[dep])
-    //         )
-    //         : [];
-    //     return deps.concat(devDeps);
-    //     } else {
-    //     return [];
-    //     }
-    // }
+        if(node === undefined){ return [];}
+
+        const getLabel =  (child:node)=>{
+            const pathSplit =  child.path.split(path.sep);
+            return pathSplit[pathSplit.length - 1];
+        };
+
+        if(node.children.length >  0){
+            return node.children.map((child)=>{
+                if(child.type === "folder"){
+                    if(child.children.length > 0){
+                        return new NodeInfo(
+                            getLabel(child),
+                            child,
+                            "folder",
+                            child.path,
+                            child.componentsCount,
+                            vscode.TreeItemCollapsibleState.Collapsed
+                        );
+                    }
+                    return new NodeInfo(
+                        getLabel(child),
+                        child,
+                        "folder",
+                        child.path,
+                        child.componentsCount,
+                        vscode.TreeItemCollapsibleState.None
+                    );
+                }else{
+                    const components =  componentFinder.getComponents(child.path.split(".")[0]);
+                    if(components){
+                        return new NodeInfo(
+                            getLabel(child),
+                            child,
+                            "file",
+                            child.path,
+                            child.componentsCount,
+                            vscode.TreeItemCollapsibleState.Collapsed
+                        );
+                    }
+                    return new NodeInfo(
+                        getLabel(child),
+                        child,
+                        "file",
+                        child.path,
+                        child.componentsCount,
+                        vscode.TreeItemCollapsibleState.None
+                    );
+                }
+            });
+        }
+
+        return [];
+    }
+
+
+    private getFileNodes(node:node,componentFinder:ComponentTreeBuilderI){
+        const components =  componentFinder.getComponents(node.path.split(".")[0]);
+        const hooksTree =  new NodeInfo(
+            "hooks",
+            undefined,
+            "placeholder",
+            node.path,
+            components? components.hooks.length :  0,
+            vscode.TreeItemCollapsibleState.Collapsed
+        );
+
+
+        if(components){
+            return [
+                ...components.components.map((comp)=>{
+                    return new NodeInfo(
+                        comp.name,
+                        undefined,
+                        "component",
+                        node.path,
+                        comp.usageCount,
+                        comp.usageCount >  0  ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
+                    );
+                }),
+                hooksTree
+            ];
+        }
+        
+        return [hooksTree];
+    }
+
+
+    private getComponentNodes(compPath:string,componentName:string ,componentFinder:ComponentTreeBuilderI){
+        const components =  componentFinder.getComponents(compPath.split(".")[0]);
+        if(components){
+            const compInfo  =components.components.find((comp)=>comp.name === componentName);
+            if(compInfo){
+                return compInfo.pathFound.map((pathFound)=>{
+                    return new NodeInfo(
+                        "foundIn",
+                        undefined,
+                        "placeholder",
+                        pathFound,
+                        undefined,
+                        vscode.TreeItemCollapsibleState.None
+                    );
+                });
+            }
+
+        }
+
+        return [];
+    }
+
+    private getHooksNodes(filePath:string,componentFinder:ComponentTreeBuilderI){
+        const components =  componentFinder.getComponents(filePath.split(".")[0]);
+        if(components){
+            return components.hooks.map((item)=>{
+                return new NodeInfo(
+                    item.name,
+                    undefined,
+                    "hook",
+                    item.source,
+                    undefined,
+                    vscode.TreeItemCollapsibleState.None
+                );
+            });
+        }
+
+        return [];
+    }
+
 
     private pathExists(p: string): boolean {
         try {
@@ -112,20 +192,35 @@ export class NodeDependenciesProvider implements vscode.TreeDataProvider<Depende
     }
     }
 
-    class Dependency extends vscode.TreeItem {
-    constructor(
-        public readonly node:  node,
-        public readonly label: string,
-        private version: string,
-        public readonly collapsibleState: vscode.TreeItemCollapsibleState
-    ) {
-        super(label, collapsibleState);
-        this.tooltip = `${this.label}-${this.version}`;
-        this.description = this.version;
-    }
+    class NodeInfo extends vscode.TreeItem {
+        constructor(
+            public readonly label: string,
+            public readonly node: node | undefined,
+            public readonly type: "folder" |  "file" |  "component" |  "hook" | "placeholder",
+            public readonly path: string,
+            public readonly count:  number| undefined,
+            public readonly collapsibleState: vscode.TreeItemCollapsibleState
+        ) {
+            super(label, collapsibleState);
 
-    iconPath = {
-        light: path.join(__filename, '..', '..', 'resources', 'light', 'dependency.svg'),
-        dark: path.join(__filename, '..', '..', 'resources', 'dark', 'dependency.svg')
-    };
+            if(["folder","file","component"].includes(this.type)){
+                this.tooltip =  `${this.label} ${type === "component"? "CU:" : "C"}:(${this.count??0})`;
+            }else{
+                this.tooltip =  `${this.label} ${type === "placeholder" && count? `${this.label.substring(0,1)}:(${count})` : "" }`;
+            }
+
+            if(this.type === "hook" || this.type === "placeholder"){
+                this.description =  this.label;
+            }else if (this.type === "component"){
+                this.description =  "Component usage information";
+            }else{
+                this.description = "Components count";
+            }
+            // this.description = this;
+        }
+
+        iconPath = {
+            light: path.join(__filename, '..', '..', 'resources', 'light', 'dependency.svg'),
+            dark: path.join(__filename, '..', '..', 'resources', 'dark', 'dependency.svg')
+        };
 }

@@ -15,7 +15,7 @@ let _HOOKS_MAP =  new Map(); // incase of another tree for all hooks and compone
 */
 
 
-class ComponentTreeBuilder{
+export class ComponentTreeBuilder{
     public isReactWorkspace: boolean;
     public workspacePath:  string;
 
@@ -48,7 +48,8 @@ class ComponentTreeBuilder{
         const stat =  fs.statSync(node.path);
         if(stat.isFile()){
             node.type =  "componentFile";
-            return this.extraAllInformation(node.path);
+            node.componentsCount =  this.extraAllInformation(node.path);
+            return node.componentsCount;
         }
 
         const subFileArray =  fs.readdirSync(node.path);
@@ -213,8 +214,11 @@ class ComponentTreeBuilder{
 
 
     private addComponentToHashMap(file:string,  componentName:string){
-        const identifier =  file.split(".")[0];
-        if(_COMPONENT_MAP.has(identifier)){ 
+        const fileSplit =   file.split(".");
+        const identifier =  fileSplit[0];
+        const extension =  fileSplit[1];
+
+        if(_COMPONENT_MAP.has(identifier)){
             const initialValue: ComponentFileRecordType =  _COMPONENT_MAP.get(identifier);
             const foundComp =  initialValue.components.find((comp)=>comp.name===componentName);
 
@@ -231,6 +235,7 @@ class ComponentTreeBuilder{
                             }
                         ],
                         hooks: [...initialValue.hooks],
+                        extension
                     }
                 );
             }
@@ -248,6 +253,7 @@ class ComponentTreeBuilder{
                     }
                 ],
                 hooks: [],
+                extension
             }
         );
         
@@ -255,7 +261,9 @@ class ComponentTreeBuilder{
 
 
     private addImportedComponentToHashMap(file:string,fullSourcePath:string, componentName:string){
-        const foundIn =  file.split(".")[0];
+        const fileSplit =  file.split(".");
+        const foundIn =  fileSplit[0];
+        const extension = fileSplit[1];
         if(_COMPONENT_MAP.has(fullSourcePath)){
             const initialValue: ComponentFileRecordType =  _COMPONENT_MAP.get(fullSourcePath);
             const foundComp =  initialValue.components.find((comp)=>comp.name===componentName);
@@ -288,6 +296,7 @@ class ComponentTreeBuilder{
                         )
                     ],
                     hooks: [...initialValue.hooks],
+                    extension: initialValue.extension,
                 }
             );
             return;
@@ -305,12 +314,15 @@ class ComponentTreeBuilder{
                     }
                 ],
                 hooks: [],
+                extension
             }
         );
     }
 
     private  addHookRecordForComponent(file:string,hookSourcePath:string, hookName:string){
-        const identifier =  file.split(".")[0];
+        const fileSplit =   file.split(".");
+        const identifier =  fileSplit[0];
+        const extension =  fileSplit[1];
         
         if(_COMPONENT_MAP.has(identifier)){ 
             const initialValue: ComponentFileRecordType =  _COMPONENT_MAP.get(identifier);
@@ -321,6 +333,7 @@ class ComponentTreeBuilder{
                     identifier, {
                         components: [...initialValue.components],
                         hooks: [...initialValue.hooks,  {name:hookName, source:hookSourcePath}],
+                        extension: initialValue.extension,
                     }
                 );
             }
@@ -331,6 +344,7 @@ class ComponentTreeBuilder{
             identifier, {
                 components: [],
                 hooks: [{name:hookName, source:hookSourcePath  }],
+                extension
             }
         );
     }
@@ -356,5 +370,17 @@ class ComponentTreeBuilder{
         const config =  JSON.parse(fs.readFileSync(packageDotJsonPath,  "utf-8"));
 
         return !!(config?.dependencies?.react??null);
+    }
+
+    public getRootNode(){
+        return _TREE_DS.root;
+    }
+
+    public getComponents(path:string) : ComponentFileRecordType |  undefined{
+        if(_COMPONENT_MAP.has(path)){
+            return _COMPONENT_MAP.get(path);
+        }
+
+        return;
     }
 }

@@ -19,18 +19,21 @@ export type tree = {
 export interface ComponentTreeBuilderI{
     createTreeDataStructures:  (rootPath:string)=>void
     isReactWorkspace:  boolean,
-    getSubNodes:  (node:undefined) => node[]
+    getRootNode:  ()=>node |  undefined,
+    getComponents:   (identifier:string) =>ComponentFileRecordType |  undefined
+
 }
 
 export type ComponentFileRecordType = {
     components: ComponentRecordType[],
-    hooks:  HooksRecordType[]
+    hooks:  HooksRecordType[],
+    extension: string
 };
 export type ComponentRecordType = {
     name:  string,
     usageCount: number,
     pathFound: string[],
-    exported: boolean
+    exported: boolean,
 };
 export type HooksRecordType = {
     name:string,
