@@ -4,6 +4,8 @@ import t, { Identifier, isVariableDeclarator } from "@babel/types";
 import * as fs from "fs";
 import * as path from 'path';
 import { Node, Tree } from "./trees";
+import { ComponentFileRecordType } from "./types";
+import { ImportPathResolver } from "./utils";
 
 let _TREE_DS =  new Tree();
 let _COMPONENT_MAP =  new Map();
@@ -46,23 +48,7 @@ class ComponentTreeBuilder{
         const stat =  fs.statSync(node.path);
         if(stat.isFile()){
             node.type =  "componentFile";
-            /*
-                count how many components are in the file;
-                create an array of objects with hook-name:path
-                if component is not in hashmap
-                add component to component hash map with path + filename: [{
-                    name: component Name
-                    usageCount: 0,
-                    foundIn: [path]
-                    hooks: [{hook-name:path}]
-                }]
-
-                find all import that match Component import
-                check if component path exists in hashmap as a key (src +  import path[create resolver func if relative])
-                add if not exists and increment the usageCount to + 1 then add path to foundIn array
-                return component count
-            */
-            return 0;
+            return this.extraAllInformation(node.path);
         }
 
         const subFileArray =  fs.readdirSync(node.path);
@@ -108,6 +94,9 @@ class ComponentTreeBuilder{
         let foundComponents =  0;
         const blockScopeReturnsJSX =  this.findIfScopeReturnsJSX;
         const storeComponent =  this.addComponentToHashMap;
+        const workspacePath =  this.workspacePath;
+        const addHookRecordForComponent  =  this.addHookRecordForComponent;
+        const addImportedComponentToHashMap  =  this.addImportedComponentToHashMap;
         /*
                 count how many components are in the file;
                 create an array of objects with hook-name:path
@@ -160,35 +149,39 @@ class ComponentTreeBuilder{
                 },
                 ImportDeclaration(path){
                   //findAllHooks
+                    const source =  path.node.source.value;
+                    const impResolver = new ImportPathResolver(workspacePath, file, source );
+                    const resolvedSource =  impResolver.getImportSourcePath();
+                    
+                    path.node.specifiers.forEach((specifier)=>{
+                            if(t.isImportSpecifier(specifier)
+                                && t.isIdentifier(specifier.imported)
+                                && specifier.imported.name.startsWith("use")
+                            ){
+
+                                addHookRecordForComponent(file,resolvedSource,specifier.imported.name);
+                        }else if(
+                            t.isImportDefaultSpecifier(specifier)
+                            && t.isIdentifier(specifier.local)
+                            && specifier.local.name.startsWith("use")){
+                                addHookRecordForComponent(file,resolvedSource,specifier.local.name);
+                        }
+                    });
+
+                    // Find all components
                     path.node.specifiers.forEach((specifier)=>{
                         if(t.isImportSpecifier(specifier)
                             && t.isIdentifier(specifier.imported)
-                            && specifier.imported.name.startsWith("use")
+                            &&specifier.imported.name.match(/^[A-Z][a-zA-Z0-9]*$/)
                         ){
-                        console.log("named hook import");
+                            addImportedComponentToHashMap(file,resolvedSource,specifier.imported.name);
+                        }else if(t.isImportDefaultSpecifier(specifier) && specifier.local.name.match(/^[A-Z][a-zA-Z0-9]*$/)){
+                            addImportedComponentToHashMap(file,resolvedSource,specifier.local.name);
+                        }
+                    });
 
-                    }else if(
-                        t.isImportDefaultSpecifier(specifier)
-                        && t.isIdentifier(specifier.local)
-                        && specifier.local.name.startsWith("use")){
-                        console.log("default hook import");
-                    }
-                });
-
-                  // Find all components
-                path.node.specifiers.forEach((specifier)=>{
-                    if(t.isImportSpecifier(specifier)
-                        && t.isIdentifier(specifier.imported)
-                        &&specifier.imported.name.match(/^[A-Z][a-zA-Z0-9]*$/)
-                    ){
-                        console.log("named component import");
-                    }else if(t.isImportDefaultSpecifier(specifier) && specifier.local.name.match(/^[A-Z][a-zA-Z0-9]*$/)){
-                        console.log("default component import");
-                    }
-                });
-
-                console.log(path.node.source.value);
-                 //parse and evaluate path if its a library or local
+                    console.log(path.node.source.value);
+                    //parse and evaluate path if its a library or local
                 }
             }
         );
@@ -198,15 +191,6 @@ class ComponentTreeBuilder{
         
 
 
-        // const componentNames =  this.getAllDefinedComponents(fileContent);
-        // const hooksObjectsRep =  this.getAllHooksUsed(fileContent);
-        // const componentDepenencies =  this.getAllImportedComponents(fileContent);
-
-        // this.appendComponentsToHashMap(componentNames, file);
-        // this.updateUsageRecord(componentDepenencies,  file);
-        // this.updateHooksRecord(hooksObjectsRep);
-
-        // return componentNames.length;
         return foundComponents;
     }
 
@@ -228,24 +212,30 @@ class ComponentTreeBuilder{
     }
 
 
-    private findAllImportedHooks(filename:string){
-        //if path is relative resolve from filename /home/www/src/comp/A.tsx : ../pages/X.py -> /home/ww/src/pages/X.py
-        //if path starts with @ check if it is a component defined in package.json else find definition of alias in webpack.config.js or .babelrc or vite.config.js
-        //if no @ and . at the beginning of file then look for baseUrl in tsconfig.json or jsconfig.json in compilerOptions
-    }
-
-    private findAllImportedComponents(){
-
-    }
-
-    private resolveImportPath(filePath: string,  importPath:string){
-        
-    }
-
-
     private addComponentToHashMap(file:string,  componentName:string){
         const identifier =  file.split(".")[0];
-        if(_COMPONENT_MAP.has(componentName)){ return; }
+        if(_COMPONENT_MAP.has(identifier)){ 
+            const initialValue: ComponentFileRecordType =  _COMPONENT_MAP.get(identifier);
+            const foundComp =  initialValue.components.find((comp)=>comp.name===componentName);
+
+            if(!foundComp){
+                _COMPONENT_MAP.set(
+                    identifier, {
+                        components: [
+                            ...initialValue.components,
+                            {
+                                name:  componentName,
+                                usageCount: 0,
+                                pathFound: [],
+                                exported: false, //TODO: future implementation
+                            }
+                        ],
+                        hooks: [...initialValue.hooks],
+                    }
+                );
+            }
+            return;
+        }
 
         _COMPONENT_MAP.set(
             identifier, {
@@ -264,11 +254,86 @@ class ComponentTreeBuilder{
     }
 
 
-    private getAllDefinedComponents(fileContent:Buffer){
+    private addImportedComponentToHashMap(file:string,fullSourcePath:string, componentName:string){
+        const foundIn =  file.split(".")[0];
+        if(_COMPONENT_MAP.has(fullSourcePath)){
+            const initialValue: ComponentFileRecordType =  _COMPONENT_MAP.get(fullSourcePath);
+            const foundComp =  initialValue.components.find((comp)=>comp.name===componentName);
 
-        return [];
+            _COMPONENT_MAP.set(
+                fullSourcePath, {
+                    components: [
+                        ...(foundComp? initialValue.components.map((item)=>{
+                            if(item.name === componentName){
+                                return {
+                                    ...item,
+                                    usageCount: item.usageCount + 1,
+                                    pathFound: [...item.pathFound , foundIn],
+                                    exported: true
+                                };
+                            }
+
+                            return item;
+                        }) :
+
+                        [
+                            {
+                                name: componentName,
+                                usageCount: 1,
+                                pathFound: [foundIn],
+                                exported: true
+                            }
+                        ]
+
+                        )
+                    ],
+                    hooks: [...initialValue.hooks],
+                }
+            );
+            return;
+        }
+
+
+        _COMPONENT_MAP.set(
+            fullSourcePath, {
+                components: [
+                    {
+                        name:  componentName,
+                        usageCount: 1,
+                        pathFound: [foundIn],
+                        exported: true,
+                    }
+                ],
+                hooks: [],
+            }
+        );
     }
 
+    private  addHookRecordForComponent(file:string,hookSourcePath:string, hookName:string){
+        const identifier =  file.split(".")[0];
+        
+        if(_COMPONENT_MAP.has(identifier)){ 
+            const initialValue: ComponentFileRecordType =  _COMPONENT_MAP.get(identifier);
+            const foundHook =  initialValue.hooks.find((hook)=>hook.name===hookName);
+
+            if(!foundHook){
+                _COMPONENT_MAP.set(
+                    identifier, {
+                        components: [...initialValue.components],
+                        hooks: [...initialValue.hooks,  {name:hookName, source:hookSourcePath}],
+                    }
+                );
+            }
+            return;
+        }
+
+        _COMPONENT_MAP.set(
+            identifier, {
+                components: [],
+                hooks: [{name:hookName, source:hookSourcePath  }],
+            }
+        );
+    }
 
 
     private pathExists(p: string): boolean {

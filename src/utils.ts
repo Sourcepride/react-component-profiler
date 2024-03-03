@@ -47,13 +47,15 @@ export class ImportPathResolver{
 
 
     private resolveAlias(importPath:string){
-        const firstPathFraction = importPath.split("/")[0];
+        const pathSplit =  importPath.split("/");
+        const firstPathFraction = pathSplit[0];
+        const innerComponentPath =  pathSplit.length > 1? pathSplit.splice(1,pathSplit.length) : [""];
         
-        if(firstPathFraction in _ALIASES){return _ALIASES[firstPathFraction]; }
+        if(firstPathFraction in _ALIASES){return path.join(_ALIASES[firstPathFraction],...innerComponentPath); }
 
         this.getAllImportAlias();
 
-        if(firstPathFraction in _ALIASES){return _ALIASES[firstPathFraction]; }
+        if(firstPathFraction in _ALIASES){return path.join(_ALIASES[firstPathFraction],...innerComponentPath); }
 
         return path.join(this.getRootPath() , "src",  importPath.substring(1));
 

@@ -21,3 +21,18 @@ export interface ComponentTreeBuilderI{
     isReactWorkspace:  boolean,
     getSubNodes:  (node:undefined) => node[]
 }
+
+export type ComponentFileRecordType = {
+    components: ComponentRecordType[],
+    hooks:  HooksRecordType[]
+};
+export type ComponentRecordType = {
+    name:  string,
+    usageCount: number,
+    pathFound: string[],
+    exported: boolean
+};
+export type HooksRecordType = {
+    name:string,
+    source:  string
+};

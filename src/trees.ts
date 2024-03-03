@@ -1,4 +1,4 @@
-import { node, tree } from "./interface";
+import { node, tree } from "./types";
 
 export class Tree implements tree{
 
