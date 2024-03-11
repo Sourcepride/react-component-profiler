@@ -37,12 +37,13 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
             let response: NodeInfo[];
 
             switch (element.type){
-                case 'folder':{ 
+                case 'folder':{
                     response =  this.getFolderNodes(element.node as node, this.componentFinder);
                     break;
                 }
-                case 'file':{ 
+                case 'file':{
                     response =  this.getFileNodes(element.node as node, this.componentFinder );
+                    break;
                 }
                 case 'component': {
                     response =  this.getComponentNodes(element.path, element.label, this.componentFinder);
@@ -156,12 +157,14 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
 
     private getComponentNodes(compPath:string,componentName:string ,componentFinder:ComponentTreeBuilderI){
         const components =  componentFinder.getComponents(compPath.split(".")[0]);
+        const componentName_  =  componentName.split(".").length > 0 ? componentName.split(".")[0] : componentName;
+
         if(components){
-            const compInfo  =components.components.find((comp)=>comp.name === componentName);
+            const compInfo  =components.components.find((comp)=>comp.name === componentName_ );
             if(compInfo){
                 return compInfo.pathFound.map((pathFound)=>{
                     return new NodeInfo(
-                        "foundIn",
+                        `from: ${pathFound}`,
                         undefined,
                         "placeholder",
                         pathFound,
@@ -169,6 +172,7 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
                         vscode.TreeItemCollapsibleState.None
                     );
                 });
+
             }
 
         }
