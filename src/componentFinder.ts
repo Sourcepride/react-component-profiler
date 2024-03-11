@@ -1,6 +1,6 @@
-import parser from "@babel/parser";
+import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
-import t, { Identifier, isVariableDeclarator } from "@babel/types";
+import * as t from "@babel/types";
 import * as fs from "fs";
 import * as path from 'path';
 import { Node, Tree } from "./trees";
@@ -54,14 +54,18 @@ export class ComponentTreeBuilder{
 
         const subFileArray =  fs.readdirSync(node.path);
         let componentCount =  0;
-        subFileArray.forEach((file)=>{
-            if (!this.isReactFileOrFolder(file)){ return; }
 
-            const subNode = Node.createNewNode(path.join(node.path,  file));
+        for(let file of subFileArray){
+            const filePath =  path.join(node.path,  file);
+            if (!this.isReactFileOrFolder(filePath)) {continue;}
+
+            console.log("====================================", file);
+
+            const subNode = Node.createNewNode(filePath);
             node.children.push(subNode);
             componentCount += this.depthFirstFolderTreeTraversal(subNode);
-        });
-        
+
+        }
 
         node.componentsCount =  componentCount;
         return componentCount;
@@ -92,6 +96,7 @@ export class ComponentTreeBuilder{
 
 
     private extraAllInformation(file:string):  number{
+        const fileExtension =  file.split(".").length > 1? file.split(".")[1] :  "js";
         let foundComponents =  0;
         const blockScopeReturnsJSX =  this.findIfScopeReturnsJSX;
         const storeComponent =  this.addComponentToHashMap;
@@ -116,23 +121,26 @@ export class ComponentTreeBuilder{
                 return component count
             */
         const fileContent = fs.readFileSync(file, "utf-8");
-        const ast = parser.parse(fileContent, {
-            sourceType: 'module',
-            plugins: ['jsx'],
-        });
 
+        const ast = parse(fileContent, {
+            strictMode:false,
+            sourceType: "module",
+            plugins: [
+                "jsx",
+                ...( (fileExtension === "tsx" ||  fileExtension === "ts")? ["typescript"] : []) as any
+            ],
+    });
 
         traverse(
             ast, {
                 ArrowFunctionExpression(path){
                     const storeComponentAndIncrementCount =  ()=>{
-                        if(!isVariableDeclarator(path.parent)) {return;}
+                        if(!t.isVariableDeclarator(path.parent)) {return;}
                         foundComponents +=  1;
-                        storeComponent(file,  (path.parent.id as Identifier).name);
+                        storeComponent(file,  (path.parent.id as t.Identifier).name);
                     };
 
                     if(t.isJSXElement(path.node.body) ||  t.isJSXFragment(path.node.body)){
-                            
                         storeComponentAndIncrementCount();
                         return;
                     }
@@ -141,7 +149,7 @@ export class ComponentTreeBuilder{
                         storeComponentAndIncrementCount();
                     }
                 },
-                    FunctionDeclaration(path){
+                FunctionDeclaration(path){
                         if (blockScopeReturnsJSX(path.node.body)){
                             if(!path.node.id){ return;}
                             foundComponents +=  1;
@@ -157,10 +165,10 @@ export class ComponentTreeBuilder{
                     path.node.specifiers.forEach((specifier)=>{
                             if(t.isImportSpecifier(specifier)
                                 && t.isIdentifier(specifier.imported)
-                                && specifier.imported.name.startsWith("use")
+                                && (specifier.imported as t.Identifier).name.startsWith("use")
                             ){
 
-                                addHookRecordForComponent(file,resolvedSource,specifier.imported.name);
+                                addHookRecordForComponent(file,resolvedSource,(specifier.imported as t.Identifier).name);
                         }else if(
                             t.isImportDefaultSpecifier(specifier)
                             && t.isIdentifier(specifier.local)
@@ -173,7 +181,7 @@ export class ComponentTreeBuilder{
                     path.node.specifiers.forEach((specifier)=>{
                         if(t.isImportSpecifier(specifier)
                             && t.isIdentifier(specifier.imported)
-                            &&specifier.imported.name.match(/^[A-Z][a-zA-Z0-9]*$/)
+                            && specifier.imported.name.match(/^[A-Z][a-zA-Z0-9]*$/)
                         ){
                             addImportedComponentToHashMap(file,resolvedSource,specifier.imported.name);
                         }else if(t.isImportDefaultSpecifier(specifier) && specifier.local.name.match(/^[A-Z][a-zA-Z0-9]*$/)){
@@ -201,13 +209,14 @@ export class ComponentTreeBuilder{
         if(!t.isBlockStatement(inputBody)){ return false;}
             
         let returnVal = false;
-        inputBody.body.forEach((element)=>{
-            if(!t.isReturnStatement(element)) {return 0;}
 
+        for (let element of inputBody.body) {
+            if(!t.isReturnStatement(element)) {continue;}
             if(t.isJSXElement(element.argument) ||  t.isJSXFragment(element.argument)){
                 returnVal =  true;
             }
-        });
+        }
+        
 
         return returnVal;
     }
@@ -369,7 +378,8 @@ export class ComponentTreeBuilder{
 
         const config =  JSON.parse(fs.readFileSync(packageDotJsonPath,  "utf-8"));
 
-        return !!(config?.dependencies?.react??null);
+        this.isReactWorkspace =   !!(config?.dependencies?.react??null);
+        return this.isReactWorkspace;
     }
 
     public getRootNode(){

@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { ComponentTreeBuilder } from './componentFinder';
 import { ComponentTreeBuilderI, node } from './types';
 
 
@@ -11,7 +12,7 @@ import { ComponentTreeBuilderI, node } from './types';
 
 
 export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo> {
-    constructor(private workspaceRoot: string, private componentFinder:ComponentTreeBuilderI) {
+    constructor(private workspaceRoot: string, private componentFinder:ComponentTreeBuilder) {
         this.componentFinder.createTreeDataStructures(this.workspaceRoot);
     }
 
@@ -20,7 +21,6 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
     }
 
     getChildren(element?: NodeInfo): Thenable<NodeInfo[]> {
-
         if (!this.workspaceRoot) {
             vscode.window.showInformationMessage('No component in empty workspace');
             return Promise.resolve([]);
@@ -35,13 +35,27 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
 
         if (element){
             let response: NodeInfo[];
+
             switch (element.type){
-                case 'folder': response =  this.getFolderNodes(element.node as node, this.componentFinder);
-                case 'file': response =  this.getFileNodes(element.node as node, this.componentFinder );
-                case 'component': response =  this.getComponentNodes(element.path, element.label, this.componentFinder);
-                case 'placeholder': response = element.label === "hooks"? this.getHooksNodes(element.path,  this.componentFinder) : [];
+                case 'folder':{ 
+                    response =  this.getFolderNodes(element.node as node, this.componentFinder);
+                    break;
+                }
+                case 'file':{ 
+                    response =  this.getFileNodes(element.node as node, this.componentFinder );
+                }
+                case 'component': {
+                    response =  this.getComponentNodes(element.path, element.label, this.componentFinder);
+                    break;
+                }
+                case 'placeholder':{
+                    response = element.label === "hooks"? this.getHooksNodes(element.path,  this.componentFinder) : [];
+                    break;
+                }
                 default: response =  [];
             }
+
+
 
             return Promise.resolve(response);
         }else{
@@ -52,7 +66,6 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
 
 
     private getFolderNodes(node: node| undefined,componentFinder:ComponentTreeBuilderI ){
-
         if(node === undefined){ return [];}
 
         const getLabel =  (child:node)=>{
@@ -203,19 +216,20 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
         ) {
             super(label, collapsibleState);
 
-            if(["folder","file","component"].includes(this.type)){
-                this.tooltip =  `${this.label} ${type === "component"? "CU:" : "C"}:(${this.count??0})`;
+            if(this.type === "hook" || this.type === "placeholder"){
+                this.tooltip =  this.label;
+            }else if (this.type === "component"){
+                this.tooltip =  "Component usage information";
             }else{
-                this.tooltip =  `${this.label} ${type === "placeholder" && count? `${this.label.substring(0,1)}:(${count})` : "" }`;
+                this.tooltip = "Components count";
             }
 
-            if(this.type === "hook" || this.type === "placeholder"){
-                this.description =  this.label;
-            }else if (this.type === "component"){
-                this.description =  "Component usage information";
+            if(["folder","file","component"].includes(this.type)){
+                this.description =  `${this.label} ${type === "component"? "CU:" : "C"}:(${this.count??0})`;
             }else{
-                this.description = "Components count";
+                this.description =  `${this.label} ${type === "placeholder" && count? `${this.label.substring(0,1)}:(${count})` : "" }`;
             }
+
             // this.description = this;
         }
 

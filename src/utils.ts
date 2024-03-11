@@ -1,6 +1,6 @@
-import parser from "@babel/parser";
+import * as parser from "@babel/parser";
 import traverse from "@babel/traverse";
-import t, { CallExpression, StringLiteral } from "@babel/types";
+import * as t from "@babel/types";
 import * as fs from "fs";
 import * as path from 'path';
 import * as ts from 'typescript';
@@ -163,11 +163,10 @@ export class ImportPathResolver{
                     ObjectProperty(path) {
                         if(t.isIdentifier(path.node.key) && path.node.key.name === "alias"){
                             if(t.isObjectExpression(path.node.value)){
-                                path.node.value.properties.forEach((i)=>{
+                                for(let i  of path.node.value.properties){
+                                    if(!(i.type === "ObjectProperty")){continue ;}
                                     
-                                    if(!(i.type === "ObjectProperty")){return ;}
-                                    
-                                    let  alias =  (i.key as StringLiteral).value;
+                                    let  alias =  (i.key as t.StringLiteral).value;
                                     alias =  alias.startsWith("@")? alias : "@" +  alias;
 
                                     let value =  "";
@@ -178,23 +177,23 @@ export class ImportPathResolver{
                                     
                                     if(t.isCallExpression(i.value)){
                                         const found = i.value.arguments.find((item)=> (t.isStringLiteral(item)));
-                                        if(!found) {return;}
-                                        value = (found as StringLiteral).value;
+                                        if(!found) { continue; }
+                                        value = (found as t.StringLiteral).value;
                                     }
                                     
                                     if(t.isTemplateLiteral(i.value)){
                                         const callExp = i.value.expressions.find((item)=> (t.isCallExpression(item)));
                                         // handle case where not found
-                                        if(!callExp){return;}
-                                        const found = (callExp as CallExpression).arguments.find((item)=> (t.isStringLiteral(item)));
-                                        if(!found) {return ;}
-                                        value = (found as StringLiteral).value;
+                                        if(!callExp){continue;}
+                                        const found = (callExp as t.CallExpression).arguments.find((item)=> (t.isStringLiteral(item)));
+                                        if(!found) {continue;}
+                                        value = (found as t.StringLiteral).value;
                                     }
                                     
                                     if(!_ALIASES[alias]){
                                         _ALIASES[alias] =  pathLib.resolve(this_.getRootPath(), value);
                                     }
-                                });
+                                }
                             }
                         }
                         }
