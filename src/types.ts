@@ -39,3 +39,5 @@ export type HooksRecordType = {
     name:string,
     source:  string
 };
+
+export type entityType =  "folder" |  "file" |  "component" |  "hook" | "placeholder";

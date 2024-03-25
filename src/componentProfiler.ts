@@ -1,8 +1,8 @@
 import * as fs from 'fs';
-import * as path from 'path';
+import * as impPath from 'path';
 import * as vscode from 'vscode';
 import { ComponentTreeBuilder } from './componentFinder';
-import { ComponentTreeBuilderI, node } from './types';
+import { ComponentTreeBuilderI, entityType, node } from './types';
 
 
 /*
@@ -70,7 +70,7 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
         if(node === undefined){ return [];}
 
         const getLabel =  (child:node)=>{
-            const pathSplit =  child.path.split(path.sep);
+            const pathSplit =  child.path.split(impPath.sep);
             return pathSplit[pathSplit.length - 1];
         };
 
@@ -213,7 +213,7 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
         constructor(
             public readonly label: string,
             public readonly node: node | undefined,
-            public readonly type: "folder" |  "file" |  "component" |  "hook" | "placeholder",
+            public readonly type: entityType,
             public readonly path: string,
             public readonly count:  number| undefined,
             public readonly collapsibleState: vscode.TreeItemCollapsibleState
@@ -229,16 +229,24 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
             }
 
             if(["folder","file","component"].includes(this.type)){
-                this.description =  `${this.label} ${type === "component"? "CU:" : "C"}:(${this.count??0})`;
+                this.description =  `${this.label} ${type === "component"? "CU" : "C"}:(${this.count??0})`;
             }else{
                 this.description =  `${this.label} ${type === "placeholder" && count? `${this.label.substring(0,1)}:(${count})` : "" }`;
             }
 
+            const iconMap:Record<entityType, string> = {
+                "folder": "folder.svg",
+                "component": "react.svg",
+                "file":"file.svg",
+                "hook": "hook.png",
+                "placeholder": ""
+            };
+
+            this.iconPath = {
+                light: impPath.join(__filename, '..', '..', 'resources', iconMap[this.type]),
+                dark: impPath.join(__filename, '..', '..', 'resources', iconMap[this.type])
+            };
+
             // this.description = this;
         }
-
-        iconPath = {
-            light: path.join(__filename, '..', '..', 'resources', 'light', 'dependency.svg'),
-            dark: path.join(__filename, '..', '..', 'resources', 'dark', 'dependency.svg')
-        };
 }
