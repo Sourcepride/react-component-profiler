@@ -2,7 +2,7 @@
 
 A vscode extension that provide statical information of your component.
 
-![full image](https://github.com/Sourcepride/react-component-profiler/blob/main/image.jpg?raw=true)
+![full image](resources/full-image-display.png)
 ![profiler tab](resources/main-image-display.png)
 
 ## Features
