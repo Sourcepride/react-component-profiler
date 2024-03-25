@@ -2,6 +2,9 @@
 
 A vscode extension that provide statical information of your component.
 
+![full image](resources/full-image-display.png)
+![profiler tab](resources/main-image-display.png)
+
 ## Features
 
 - component count for every folder and file
