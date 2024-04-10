@@ -62,9 +62,13 @@ export class ComponentTreeBuilder{
 
             const subNode = Node.createNewNode(filePath);
             node.children.push(subNode);
-            componentCount += this.depthFirstFolderTreeTraversal(subNode);
-
+            
+            const subNodeComponentCount =  this.depthFirstFolderTreeTraversal(subNode);
+            
+            if (subNodeComponentCount === 0){ node.children.pop();}
+            else {componentCount += subNodeComponentCount;}
         }
+
 
         node.componentsCount =  componentCount;
         return componentCount;
