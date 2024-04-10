@@ -12,6 +12,12 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsWelcome": [
+      {
+        "view": "project-component-tree",
+        "contents": "No react components found yet."
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -33,8 +39,32 @@
       {
         "command": "react-component-profiler.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "project-component-tree.refreshEntry",
+        "title": "Refresh",
+        "icon": "$(extensions-refresh)"
+      },
+      {
+        "command": "project-component-tree.onlyComponentFile",
+        "title": "filter",
+        "icon": "$(list-unordered)"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "project-component-tree.onlyComponentFile",
+          "when": "view == project-component-tree",
+          "group": "navigation"
+        },
+        {
+          "command": "project-component-tree.refreshEntry",
+          "when": "view == project-component-tree",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

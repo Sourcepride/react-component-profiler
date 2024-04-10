@@ -59,7 +59,6 @@ export class ComponentTreeBuilder{
             const filePath =  path.join(node.path,  file);
             if (!this.isReactFileOrFolder(filePath)) {continue;}
 
-            console.log("====================================", file);
 
             const subNode = Node.createNewNode(filePath);
             node.children.push(subNode);
@@ -189,7 +188,6 @@ export class ComponentTreeBuilder{
                         }
                     });
 
-                    console.log(path.node.source.value);
                     //parse and evaluate path if its a library or local
                 }
             }
@@ -271,7 +269,7 @@ export class ComponentTreeBuilder{
 
     private addImportedComponentToHashMap(file:string,fullSourcePath:string, componentName:string){
         const fileSplit =  file.split(".");
-        const foundIn =  fileSplit[0];
+        const foundIn =  file;
         const extension = fileSplit[1];
         if(_COMPONENT_MAP.has(fullSourcePath)){
             const initialValue: ComponentFileRecordType =  _COMPONENT_MAP.get(fullSourcePath);

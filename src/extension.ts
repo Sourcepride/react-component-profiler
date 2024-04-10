@@ -29,8 +29,19 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	const treeBuilder =new ComponentTreeBuilder();
-	vscode.window.createTreeView('project-component-tree', {
+	const provView = vscode.window.createTreeView('project-component-tree', {
 		treeDataProvider: new ReactComponentProfiler(rootPath as string, treeBuilder )
+	});
+
+	provView.onDidChangeSelection((e)=>{
+
+		e.selection.forEach((node)=>{
+			if(node.type === "placeholder" && node.label.startsWith("from:")){
+				const nodeFilePath =   node.label.split("from:")[1];
+				vscode.workspace.openTextDocument(nodeFilePath.trim()).then((document)=>vscode.window.showTextDocument(document));
+			}
+		});
+
 	});
 
 

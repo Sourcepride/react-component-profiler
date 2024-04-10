@@ -234,18 +234,33 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
                 this.description =  `${this.label} ${type === "placeholder" && count? `${this.label.substring(0,1)}:(${count})` : "" }`;
             }
 
-            const iconMap:Record<entityType, string> = {
-                "folder": "folder.svg",
-                "component": "react.svg",
-                "file":"file.svg",
-                "hook": "hook.png",
-                "placeholder": ""
+            // const iconMap:Record<entityType, string> = {
+            //     "folder": "folder.svg",
+            //     "component": "react.svg",
+            //     "file":"file.svg",
+            //     "hook": "hook.png",
+            //     "placeholder": ""
+            // };
+            const iconMap:Record<entityType, any> = {
+                "folder": "folder",
+                "component": {
+                    light: impPath.join(__filename, '..', '..', 'resources', "react.svg"),
+                    dark: impPath.join(__filename, '..', '..', 'resources', "react.svg")
+                },
+                "file":"file",
+                "hook": {
+                    light: impPath.join(__filename, '..', '..', 'resources', "hook.png"),
+                    dark: impPath.join(__filename, '..', '..', 'resources', "hook.png")
+                },
+                "placeholder": "pinned"
             };
 
-            this.iconPath = {
-                light: impPath.join(__filename, '..', '..', 'resources', iconMap[this.type]),
-                dark: impPath.join(__filename, '..', '..', 'resources', iconMap[this.type])
-            };
+            this.iconPath = typeof iconMap[type] === "string"? new vscode.ThemeIcon(iconMap[type]) :  iconMap[type];
+
+            // this.iconPath = {
+            //     light: impPath.join(__filename, '..', '..', 'resources', iconMap[this.type]),
+            //     dark: impPath.join(__filename, '..', '..', 'resources', iconMap[this.type])
+            // };
 
             // this.description = this;
         }
