@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import { ComponentTreeBuilder } from './componentFinder';
 import { ReactComponentProfiler } from './componentProfiler';
+import { customDecorationProvider } from './customColorProvider';
 
 /*
 	
@@ -27,6 +28,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// Display a message box to the user
 		vscode.window.showInformationMessage('Hello World from React component profiler!');
 	});
+	vscode.window.registerFileDecorationProvider(new customDecorationProvider());
 
 	const treeBuilder =new ComponentTreeBuilder();
 	const provView = vscode.window.createTreeView('project-component-tree', {
@@ -34,7 +36,6 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	provView.onDidChangeSelection((e)=>{
-
 		e.selection.forEach((node)=>{
 			if(node.type === "placeholder" && node.label.startsWith("from:")){
 				const nodeFilePath =   node.label.split("from:")[1];

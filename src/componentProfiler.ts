@@ -234,16 +234,8 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
                 this.description =  `${this.label} ${type === "placeholder" && count? `${this.label.substring(0,1)}:(${count})` : "" }`;
             }
 
+            this.resourceUri = vscode.Uri.parse(`profiler-${count}:`+path);
 
-            this.resourceUri = vscode.Uri.parse(path);
-
-            // const iconMap:Record<entityType, string> = {
-            //     "folder": "folder.svg",
-            //     "component": "react.svg",
-            //     "file":"file.svg",
-            //     "hook": "hook.png",
-            //     "placeholder": ""
-            // };
             const iconMap:Record<entityType, any> = {
                 "folder": "folder",
                 "component": {
