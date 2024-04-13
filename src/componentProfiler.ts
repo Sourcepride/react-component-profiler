@@ -2,7 +2,8 @@ import * as fs from 'fs';
 import * as impPath from 'path';
 import * as vscode from 'vscode';
 import { ComponentTreeBuilder } from './componentFinder';
-import { ComponentTreeBuilderI, entityType, node } from './types';
+import { Node } from './trees';
+import { ComponentFileRecordType, ComponentRecordType, ComponentTreeBuilderI, entityType, node } from './types';
 
 
 /*
@@ -15,7 +16,7 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
     private _onDidChangeTreeData: vscode.EventEmitter<NodeInfo | undefined | null | void> = new vscode.EventEmitter<NodeInfo | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<NodeInfo | undefined | null | void> = this._onDidChangeTreeData.event;
 
-    constructor(private workspaceRoot: string, private componentFinder:ComponentTreeBuilder) {
+    constructor(private workspaceRoot: string, private componentFinder:ComponentTreeBuilder, private readonly context_:vscode.ExtensionContext) {
         this.componentFinder.createTreeDataStructures(this.workspaceRoot);
     }
 
@@ -25,7 +26,6 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
       this.componentFinder.createTreeDataStructures(this.workspaceRoot);
       this._onDidChangeTreeData.fire();
     }
-  
 
     getTreeItem(element: NodeInfo): vscode.TreeItem {
         return element;
@@ -71,6 +71,62 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
 
             return Promise.resolve(response);
         }else{
+            const showFileOnly  =  this.context_.workspaceState.get("showFileOnly",false);
+            const showComponentOnly  =  this.context_.workspaceState.get("showComponentOnly",false);
+            if(showFileOnly && !showComponentOnly){
+                const componentFilePaths =  this.componentFinder.getComponetsStore().keys();
+                const rootPath = impPath.parse(impPath.parse(process.cwd()).root).root;
+
+                const fakeFolderNode =  new Node(
+                    Array.from(componentFilePaths).filter((key)=>key.startsWith(rootPath)).map((val:string)=>{
+                        const componentInfo  = this.componentFinder.getComponents(val.split(".")[0]) as ComponentFileRecordType;
+                        return (
+                            new Node(
+                                [],
+                                componentInfo.components.length,
+                                "componentFile",
+                                componentInfo.extension && !val.endsWith(`${componentInfo.extension}`)? `${val}.${componentInfo.extension}` : val 
+                            )
+                        );
+                    }),
+                    0,
+                    "folder",
+                    ""
+                );
+                return Promise.resolve(this.getFolderNodes(fakeFolderNode, this.componentFinder));
+            }
+            else if(!showFileOnly && showComponentOnly){
+                const componentFilePaths =  this.componentFinder.getComponetsStore().keys();
+                const rootPath = impPath.parse(impPath.parse(process.cwd()).root).root;
+
+                let allComponents: {path:string,  comp:ComponentRecordType}[] = [];
+                Array.from(componentFilePaths)
+                    .filter((key)=>key.startsWith(rootPath))
+                    .forEach((val:string)=>{
+                        allComponents =  [ ...allComponents ,
+                            ...(
+                                (this.componentFinder.getComponents(val.split(".")[0]) as ComponentFileRecordType).components
+                                .map((comp)=>{
+                                    return {path:val,  comp};
+                                })
+                            )
+                        ];
+                    });
+
+                
+                    
+                return Promise.resolve(allComponents.map((compObj)=>{
+                        return new NodeInfo(
+                                compObj.comp.name,
+                                    undefined,
+                                    "component",
+                                    compObj.path,
+                                    compObj.comp.usageCount,
+                                    compObj.comp.usageCount >  0  ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
+                                );
+                    }
+                ));
+            }
             return Promise.resolve(this.getFolderNodes(this.componentFinder.getRootNode(), this.componentFinder));
         }
 

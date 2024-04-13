@@ -400,6 +400,10 @@ export class ComponentTreeBuilder{
         return _TREE_DS.root;
     }
 
+    public getComponetsStore(){
+        return _COMPONENT_MAP;
+    }
+
     public getComponents(path:string) : ComponentFileRecordType |  undefined{
         if(_COMPONENT_MAP.has(path)){
             return _COMPONENT_MAP.get(path);

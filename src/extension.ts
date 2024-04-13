@@ -31,7 +31,7 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.window.registerFileDecorationProvider(new customDecorationProvider());
 
 	const treeBuilder =new ComponentTreeBuilder();
-	const treeDataProvider = new ReactComponentProfiler(rootPath as string, treeBuilder );
+	const treeDataProvider = new ReactComponentProfiler(rootPath as string, treeBuilder, context);
 	const provView = vscode.window.createTreeView('project-component-tree', {
 		treeDataProvider: treeDataProvider
 	});
@@ -41,6 +41,24 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.commands.registerCommand('project-component-tree.refreshEntry', ()=>{
 		treeDataProvider.refresh();
 	});
+	vscode.commands.registerCommand('project-component-tree.onlyComponentFile', function (){
+		context.workspaceState.update("showFileOnly",  true);
+		context.workspaceState.update("showComponentOnly",  false);
+		setButtonsAndContext();
+		treeDataProvider.refresh();
+	});
+	vscode.commands.registerCommand('project-component-tree.onlyComponent', function (){
+		context.workspaceState.update("showComponentOnly",  true);
+		context.workspaceState.update("showFileOnly",  false);
+		setButtonsAndContext();
+		treeDataProvider.refresh();
+	});
+	vscode.commands.registerCommand('project-component-tree.all', function (){
+		context.workspaceState.update("showComponentOnly",  false);
+		context.workspaceState.update("showFileOnly",  false);
+		setButtonsAndContext();
+		treeDataProvider.refresh();
+	});
 
 	provView.onDidChangeSelection((e)=>{
 		e.selection.forEach((node)=>{
@@ -48,12 +66,26 @@ export function activate(context: vscode.ExtensionContext) {
 				const nodeFilePath =   node.label.split("from:")[1];
 				vscode.workspace.openTextDocument(nodeFilePath.trim()).then((document)=>vscode.window.showTextDocument(document));
 			}
+			else if(node.type === "component" && (node.count??0) < 1){
+				vscode.workspace.openTextDocument(node.path.trim())
+				.then((document)=>vscode.window.showTextDocument(document));
+			}
 		});
 
 	});
 
 
 	context.subscriptions.push(disposable);
+
+
+	function setButtonsAndContext(){
+		// get all default configurations here and setup init
+		const isFileOnly =  context.workspaceState.get("showFileOnly",  false);
+		const isComponentOnly =  context.workspaceState.get("showComponentOnly",  false);
+
+		vscode.commands.executeCommand( 'setContext', 'profiler-file-only', isFileOnly);
+		vscode.commands.executeCommand( 'setContext', 'profiler-component-only', isComponentOnly);
+	}
 }
 
 // This method is called when your extension is deactivated

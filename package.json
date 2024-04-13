@@ -47,7 +47,17 @@
       },
       {
         "command": "project-component-tree.onlyComponentFile",
-        "title": "filter",
+        "title": "Show files",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "project-component-tree.onlyComponent",
+        "title": "Show components",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "project-component-tree.all",
+        "title": "Show all",
         "icon": "$(list-unordered)"
       }
     ],
@@ -55,8 +65,18 @@
       "view/title": [
         {
           "command": "project-component-tree.onlyComponentFile",
-          "when": "view == project-component-tree",
-          "group": "navigation"
+          "when": "view == project-component-tree && profiler-file-only == false && profiler-component-only == false",
+          "group": "navigation@2"
+        },
+        {
+          "command": "project-component-tree.onlyComponent",
+          "when": "view == project-component-tree && profiler-file-only == true &&  profiler-component-only == false",
+          "group": "navigation@2"
+        },
+        {
+          "command": "project-component-tree.all",
+          "when": "view == project-component-tree && profiler-component-only == true &&   profiler-file-only == false ",
+          "group": "navigation@2"
         },
         {
           "command": "project-component-tree.refreshEntry",
