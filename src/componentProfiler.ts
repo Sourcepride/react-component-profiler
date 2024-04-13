@@ -12,9 +12,20 @@ import { ComponentTreeBuilderI, entityType, node } from './types';
 
 
 export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo> {
+    private _onDidChangeTreeData: vscode.EventEmitter<NodeInfo | undefined | null | void> = new vscode.EventEmitter<NodeInfo | undefined | null | void>();
+    readonly onDidChangeTreeData: vscode.Event<NodeInfo | undefined | null | void> = this._onDidChangeTreeData.event;
+
     constructor(private workspaceRoot: string, private componentFinder:ComponentTreeBuilder) {
         this.componentFinder.createTreeDataStructures(this.workspaceRoot);
     }
+
+    
+  
+    refresh(): void {
+      this.componentFinder.createTreeDataStructures(this.workspaceRoot);
+      this._onDidChangeTreeData.fire();
+    }
+  
 
     getTreeItem(element: NodeInfo): vscode.TreeItem {
         return element;

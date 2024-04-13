@@ -101,8 +101,8 @@ export class ComponentTreeBuilder{
     private extraAllInformation(file:string):  number{
         const fileExtension =  file.split(".").length > 1? file.split(".")[1] :  "js";
         let foundComponents =  0;
+        const componentHolder:  string[] =  [];
         const blockScopeReturnsJSX =  this.findIfScopeReturnsJSX;
-        const storeComponent =  this.addComponentToHashMap;
         const workspacePath =  this.workspacePath;
         const addHookRecordForComponent  =  this.addHookRecordForComponent;
         const addImportedComponentToHashMap  =  this.addImportedComponentToHashMap;
@@ -134,29 +134,29 @@ export class ComponentTreeBuilder{
             ],
     });
 
+        const storeComponentAndIncrementCount =  (componentName:string)=>{
+            componentHolder.push(componentName);
+            foundComponents +=  1;
+        };
+
         traverse(
             ast, {
                 ArrowFunctionExpression(path){
-                    const storeComponentAndIncrementCount =  ()=>{
-                        if(!t.isVariableDeclarator(path.parent)) {return;}
-                        foundComponents +=  1;
-                        storeComponent(file,  (path.parent.id as t.Identifier).name);
-                    };
-
                     if(t.isJSXElement(path.node.body) ||  t.isJSXFragment(path.node.body)){
-                        storeComponentAndIncrementCount();
+                        if(!t.isVariableDeclarator(path.parent)) {return;}
+                        storeComponentAndIncrementCount((path.parent.id as t.Identifier).name);
                         return;
                     }
                     
                     if (blockScopeReturnsJSX(path.node.body)){
-                        storeComponentAndIncrementCount();
+                        if(!t.isVariableDeclarator(path.parent)) {return;}
+                        storeComponentAndIncrementCount((path.parent.id as t.Identifier).name);
                     }
                 },
                 FunctionDeclaration(path){
                         if (blockScopeReturnsJSX(path.node.body)){
                             if(!path.node.id){ return;}
-                            foundComponents +=  1;
-                            storeComponent(file,  path.node.id.name);
+                            storeComponentAndIncrementCount(path.node.id.name);
                         }
                 },
                 ImportDeclaration(path){
@@ -198,7 +198,7 @@ export class ComponentTreeBuilder{
         );
 
 
-        
+        this.addComponentsToHashMap(file,  componentHolder);
         
 
 
@@ -224,51 +224,58 @@ export class ComponentTreeBuilder{
     }
 
 
-    private addComponentToHashMap(file:string,  componentName:string){
+    private addComponentsToHashMap(file:string,  componentNames:string[]){
         const fileSplit =   file.split(".");
         const identifier =  fileSplit[0];
         const extension =  fileSplit[1];
 
         if(_COMPONENT_MAP.has(identifier)){
             const initialValue: ComponentFileRecordType =  _COMPONENT_MAP.get(identifier);
-            const foundComp =  initialValue.components.find((comp)=>comp.name===componentName);
 
-            if(!foundComp){
-                _COMPONENT_MAP.set(
-                    identifier, {
-                        components: [
-                            ...initialValue.components,
-                            {
-                                name:  componentName,
-                                usageCount: 0,
-                                pathFound: [],
-                                exported: false, //TODO: future implementation
-                            }
-                        ],
-                        hooks: [...initialValue.hooks],
-                        extension
-                    }
-                );
-            }
+            _COMPONENT_MAP.set(
+                identifier,  {
+                    components: componentNames.map((name)=>{
+                        return {
+                            name,
+                            ...(this.getIntialOrDefault(name,  initialValue)),
+                            exported: false, //TODO: future implementation
+                        };
+                    }),
+                    hooks: [...initialValue.hooks],
+                    extension
+                }
+            );
+
             return;
         }
 
         _COMPONENT_MAP.set(
             identifier, {
-                components: [
+                components:  componentNames.map((name)=>(
                     {
-                        name:  componentName,
+                        name,
                         usageCount: 0,
                         pathFound: [],
                         exported: false, //TODO: future implementation
                     }
-                ],
+                )
+            )
+                ,
                 hooks: [],
                 extension
             }
         );
         
     }
+
+
+    private getIntialOrDefault(name:string,initialValue:ComponentFileRecordType){
+        const prevInfo =  initialValue.components.find((comp)=>comp.name === name);
+        if(prevInfo){
+            return {usageCount: prevInfo.usageCount, pathFound: prevInfo.pathFound};
+        }
+        return {usageCount: 0, pathFound: []};
+    };
 
 
     private addImportedComponentToHashMap(file:string,fullSourcePath:string, componentName:string){
@@ -278,6 +285,11 @@ export class ComponentTreeBuilder{
         if(_COMPONENT_MAP.has(fullSourcePath)){
             const initialValue: ComponentFileRecordType =  _COMPONENT_MAP.get(fullSourcePath);
             const foundComp =  initialValue.components.find((comp)=>comp.name===componentName);
+            // do not add found file path more than once
+            if ((foundComp?.pathFound??[]).indexOf(foundIn) !== -1){
+                return;
+            }
+
 
             _COMPONENT_MAP.set(
                 fullSourcePath, {

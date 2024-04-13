@@ -31,8 +31,15 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.window.registerFileDecorationProvider(new customDecorationProvider());
 
 	const treeBuilder =new ComponentTreeBuilder();
+	const treeDataProvider = new ReactComponentProfiler(rootPath as string, treeBuilder );
 	const provView = vscode.window.createTreeView('project-component-tree', {
-		treeDataProvider: new ReactComponentProfiler(rootPath as string, treeBuilder )
+		treeDataProvider: treeDataProvider
+	});
+
+
+
+	vscode.commands.registerCommand('project-component-tree.refreshEntry', ()=>{
+		treeDataProvider.refresh();
 	});
 
 	provView.onDidChangeSelection((e)=>{
