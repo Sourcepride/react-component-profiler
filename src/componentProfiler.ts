@@ -78,7 +78,8 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
                 const rootPath = impPath.parse(impPath.parse(process.cwd()).root).root;
 
                 const fakeFolderNode =  new Node(
-                    Array.from(componentFilePaths).filter((key)=>key.startsWith(rootPath)).map((val:string)=>{
+                    Array.from(componentFilePaths).filter((key)=>!!(key.startsWith(rootPath) && this.componentFinder.getComponents(key.split(".")[0])?.components))
+                    .map((val:string)=>{
                         const componentInfo  = this.componentFinder.getComponents(val.split(".")[0]) as ComponentFileRecordType;
                         return (
                             new Node(
@@ -101,7 +102,7 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
 
                 let allComponents: {path:string,  comp:ComponentRecordType}[] = [];
                 Array.from(componentFilePaths)
-                    .filter((key)=>key.startsWith(rootPath))
+                    .filter((key)=>!!(key.startsWith(rootPath) && this.componentFinder.getComponents(key.split(".")[0])?.components))
                     .forEach((val:string)=>{
                         allComponents =  [ ...allComponents ,
                             ...(
