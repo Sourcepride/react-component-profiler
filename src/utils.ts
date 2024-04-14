@@ -81,8 +81,8 @@ export class ImportPathResolver{
             return;
         }
 
-        let baseUrl =  configObject?.compilerOptions?.baseUrl;
-        const paths =  configObject?.compilerOptions?.paths;
+        let baseUrl =  configObject?.compilerOptions?.baseUrl??"";
+        const paths =  configObject?.compilerOptions?.paths??{};
         let basePath = "";
 
         if(paths){
@@ -98,7 +98,10 @@ export class ImportPathResolver{
                 let alias =  key.split("/")[0];
                 alias =  alias.startsWith("@")? alias : "@" +  alias;
                 const regex = new RegExp(`^.*${baseUrl}`);
-                const value = (baseUrl? paths[key].replace(regex,""):  paths[key]).replace(/\*$/, "");
+
+
+                const value_ = this.getAliasValue(paths[key])??"";
+                const value = (baseUrl? value_.replace(regex,""):  value_).replace(/\*$/, "");
 
 
                 if(!_ALIASES[alias]){
@@ -209,7 +212,10 @@ export class ImportPathResolver{
             const jsonDataWithoutSingleLineComments = fs.readFileSync(configFile, "utf-8").replace(/\/\/.*\n/g, '');
             // Remove multi-line comments
             const jsonDataWithoutComments = jsonDataWithoutSingleLineComments.replace(/\/\*[\s\S]*?\*\//g, '');
-            return ts.parseConfigFileTextToJson(configFile, jsonDataWithoutComments).config;
+
+            // return ts.parseConfigFileTextToJson(configFile, jsonDataWithoutComments).config;
+
+            return ts.readConfigFile(configFile,ts.sys.readFile).config;
         }
 
         return {};
@@ -238,5 +244,14 @@ export class ImportPathResolver{
         }
 
         return false;
+    }
+
+
+    private getAliasValue(values:  any){
+        if(Array.isArray(values)){
+            return values[0]??"";
+        }
+
+        return  values;
     }
 }
