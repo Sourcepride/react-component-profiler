@@ -7,11 +7,15 @@ A vscode extension that provide statical information of your component.
 
 ## Features
 
-- component count for every folder and file
-- component usage count (count for where components are used)
-- component search
+- number of components in component folders
+- number of components present in every file
+- number of times a component is used by other components
+- link to possible files component is called from
+- list of all hooks used in a component file
+- component search (coming soon...)
 - refresh
-- filters  (by component files)
+- show only component files toggle
+- show only components toggle
 
 ## Requirements
 All npm packages in package.json
