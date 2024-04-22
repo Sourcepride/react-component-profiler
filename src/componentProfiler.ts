@@ -17,6 +17,7 @@ export class ReactComponentProfiler implements vscode.TreeDataProvider<NodeInfo>
     readonly onDidChangeTreeData: vscode.Event<NodeInfo | undefined | null | void> = this._onDidChangeTreeData.event;
 
     constructor(private workspaceRoot: string, private componentFinder:ComponentTreeBuilder, private readonly context_:vscode.ExtensionContext) {
+        this.componentFinder.setSrcFolder(context_.workspaceState.get("srcFolder", "src"));
         this.componentFinder.createTreeDataStructures(this.workspaceRoot);
     }
 

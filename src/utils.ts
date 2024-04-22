@@ -9,7 +9,7 @@ import * as ts from 'typescript';
 const _ALIASES:Record<string, string> = {};
 
 export class ImportPathResolver{
-    public constructor(public baseDir:string, public filePath:string ,public importPath:string){
+    public constructor(public baseDir:string, public filePath:string ,public importPath:string,  public srcFolder:string){
     }
 
 
@@ -38,7 +38,7 @@ export class ImportPathResolver{
 
         let rootPath =  this.baseDir;
         if(!rootPath){
-            const srcIndex  =  dirPath.indexOf("src");
+            const srcIndex  =  dirPath.indexOf(this.srcFolder);
             rootPath=  dirPath.substring(0,  srcIndex);
         }
 
@@ -57,7 +57,7 @@ export class ImportPathResolver{
 
         if(firstPathFraction in _ALIASES){return path.join(_ALIASES[firstPathFraction],...innerComponentPath); }
 
-        return path.join(this.getRootPath() , "src",  importPath.substring(1));
+        return path.join(this.getRootPath() , this.srcFolder,  importPath.substring(1));
 
     }
 
@@ -119,7 +119,7 @@ export class ImportPathResolver{
             try{
                 const jsonContent =  this.parseConfigJson(rootPath);
 
-                const baseUrl =  jsonContent?.compilerOptions?.baseUrl??"src";
+                const baseUrl =  jsonContent?.compilerOptions?.baseUrl??this.srcFolder;
                 
 
                 if(baseUrl === "." ||  baseUrl === "./"){
@@ -129,7 +129,7 @@ export class ImportPathResolver{
                 return path.join(rootPath,baseUrl.replace(/^(\.\/|\/)/, ""),  this.importPath);
 
             }catch(err){
-                return path.join(rootPath, "src", this.importPath);
+                return path.join(rootPath, this.srcFolder, this.importPath);
             }
     }
 

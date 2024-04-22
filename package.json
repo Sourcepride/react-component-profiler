@@ -37,10 +37,6 @@
     },
     "commands": [
       {
-        "command": "react-component-profiler.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "project-component-tree.refreshEntry",
         "title": "Refresh",
         "icon": "$(extensions-refresh)"

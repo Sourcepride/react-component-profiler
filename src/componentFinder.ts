@@ -18,11 +18,13 @@ let _HOOKS_MAP =  new Map(); // incase of another tree for all hooks and compone
 export class ComponentTreeBuilder{
     public isReactWorkspace: boolean;
     public workspacePath:  string;
+    private srcFolder:  string;
 
 
     constructor (){
         this.isReactWorkspace =  false;
         this.workspacePath = "";
+        this.srcFolder = "src";
     }
 
     public createTreeDataStructures(workspacePath: string){
@@ -34,7 +36,7 @@ export class ComponentTreeBuilder{
             - if true:
                 - start DFS tree iteration by calling  findAllComponents
         */
-        const rootNode =  Node.createNewNode(path.join(workspacePath,  "src"));
+        const rootNode =  Node.createNewNode(path.join(workspacePath,  this.srcFolder));
         _TREE_DS.root = rootNode;
         this.workspacePath =  workspacePath;
 
@@ -106,6 +108,7 @@ export class ComponentTreeBuilder{
         const workspacePath =  this.workspacePath;
         const addHookRecordForComponent  =  this.addHookRecordForComponent;
         const addImportedComponentToHashMap  =  this.addImportedComponentToHashMap;
+        const srcFolder =  this.srcFolder;
         /*
                 count how many components are in the file;
                 create an array of objects with hook-name:path
@@ -162,7 +165,7 @@ export class ComponentTreeBuilder{
                 ImportDeclaration(path){
                   //findAllHooks
                     const source =  path.node.source.value;
-                    const impResolver = new ImportPathResolver(workspacePath, file, source );
+                    const impResolver = new ImportPathResolver(workspacePath, file, source, srcFolder);
                     const resolvedSource =  impResolver.getImportSourcePath();
                     
                     path.node.specifiers.forEach((specifier)=>{
@@ -384,7 +387,7 @@ export class ComponentTreeBuilder{
 
 
     public isReactProject(projectRootPath:  string): boolean{
-        const srcPath:string =  path.join(projectRootPath,  "src");
+        const srcPath:string =  path.join(projectRootPath,  this.srcFolder);
         const packageDotJsonPath:string =  path.join(projectRootPath,  "package.json");
         if(!(this.pathExists(srcPath) && this.pathExists(packageDotJsonPath))) { return false; }
         
@@ -410,5 +413,14 @@ export class ComponentTreeBuilder{
         }
 
         return;
+    }
+
+    public setSrcFolder(folderName:string){
+        this.srcFolder =  folderName;
+    }
+
+    public clear(){
+        _TREE_DS =  new Tree();
+        _COMPONENT_MAP =  new Map();
     }
 }
