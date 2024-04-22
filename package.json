@@ -3,6 +3,8 @@
   "displayName": "React component profiler",
   "description": "A simple extension that profiles your react component usage and dependencies",
   "version": "0.0.1",
+  "publisher": "Sourcepride",
+  "icon": "resources/extlogo.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/Sourcepride/react-component-profiler.git"
