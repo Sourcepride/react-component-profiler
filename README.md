@@ -1,9 +1,6 @@
-# react-component-profiler README
+# React Component Profiler
 
-A vscode extension that provide statical information of your component.
-
-![full image](resources/full-image-display.png)
-![profiler tab](resources/main-image-display.png)
+Get an insight of how many components are in your (React/NextJs) project and where they are being used.
 
 ## Features
 
@@ -17,14 +14,26 @@ A vscode extension that provide statical information of your component.
 - show only component files toggle
 - show only components toggle
 
-## Requirements
-All npm packages in package.json
+
+![full image](resources/full-image-display.png)
+![profiler tab](resources/main-image-display.png)
+
+
+## Configuration
+By default the extension assumes all project socurce code lives inside the src directory which is usally not the case especially with nextjs.
+
+to point the extension to app as your sourcecode folder add this settings to settings.json
+
+```
+{
+     "react-component-profiler": {
+         "srcFolder": "app"
+     },
+}
+```
+
+
+## Contribute
+Please feel free to contribute to this project or raise an issue/ pull request. see our [contributions.md](CONTRIBUTIONS.md)
 
 ## Release Notes
-
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
