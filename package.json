@@ -2,7 +2,7 @@
   "name": "react-component-profiler",
   "displayName": "React component profiler",
   "description": "A simple extension that profiles your react component usage and dependencies",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "Sourcepride",
   "icon": "resources/extlogo.png",
   "repository": {
@@ -16,7 +16,7 @@
     "Other"
   ],
   "activationEvents": [],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "viewsWelcome": [
       {
@@ -89,12 +89,11 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "vscode-test"
+    "vscode:prepublish": "npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "test-compile": "tsc -p ./"
   },
   "devDependencies": {
     "@types/babel__traverse": "^7.20.5",
@@ -105,6 +104,7 @@
     "@typescript-eslint/parser": "^6.19.1",
     "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.3.9",
+    "esbuild": "^0.20.2",
     "eslint": "^8.56.0",
     "typescript": "^5.3.3"
   },
