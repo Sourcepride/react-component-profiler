@@ -12,6 +12,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - component search (coming soon...)
 - bug fix for windows (cannot show components list)
 
+## [0.0.3] - 2024-12-27
+
+### Added
+
+- resolved issues with file extension braking code
+- use standard lib for path manipulation
+
+## [0.0.2] - 2024-04-23
+
+### Added
+
+- bundler esbuild
+- main in package.json now points to ./dist/extension.js
+
+### Fixes
+
+- command not registered.
+
 ## [0.0.1] - 2024-04-22
 
 ### Added
@@ -25,5 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - show only component files toggle
 - show only components toggle
 
-[unreleased]: https://github.com/Sourcepride/react-component-profiler/releases/tag/0.0.1...HEAD
+[unreleased]: https://github.com/Sourcepride/react-component-profiler/releases/tag/0.0.2...HEAD
 [0.0.1]: https://github.com/Sourcepride/react-component-profiler/releases/tag/0.0.1
+[0.0.2]: https://github.com/Sourcepride/react-component-profiler/releases/tag/0.0.2
