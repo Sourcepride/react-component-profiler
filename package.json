@@ -2,7 +2,7 @@
   "name": "react-component-profiler",
   "displayName": "React component profiler",
   "description": "A simple extension that profiles your react component usage and dependencies",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "Sourcepride",
   "icon": "resources/extlogo.png",
   "repository": {
