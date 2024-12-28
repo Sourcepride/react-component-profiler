@@ -7,14 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixes
+### Added
 
 - component search (coming soon...)
 - bug fix for windows (cannot show components list)
 
 ## [0.0.3] - 2024-12-27
 
-### Added
+### Fixes
 
 - resolved issues with file extension braking code
 - use standard lib for path manipulation
